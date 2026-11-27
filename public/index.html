@@ -13,7 +13,7 @@
 <header class="topbar">
   <a class="brand" href="/"><span class="brandmark">BW</span><span>BidWazi Africa</span></a>
   <nav aria-label="Primary navigation"><a href="#radar">Tender radar</a><a href="#workflow">How it works</a><a href="#beta">Supplier beta</a></nav>
-  <a class="button small" href="#radar">Explore tenders</a>
+  <div class="top-actions"><button id="account-open" class="button small secondary" type="button">Sign in</button><button id="dashboard-open" class="button small" type="button" hidden>Supplier workspace</button></div>
 </header>
 <main>
 <section class="hero">
@@ -60,12 +60,63 @@
     <article><b>03 / PREPARE</b><h3>Verify and bid</h3><p>Open the official notice, confirm requirements and manage your bid process.</p></article>
   </div>
 </section>
+
+<section id="supplier-dashboard" class="section dashboard-section" hidden>
+  <div class="section-heading"><div><p class="eyebrow">SUPPLIER WORKSPACE</p><h2>Your procurement desk</h2><p class="muted" id="dashboard-welcome"></p></div><button id="account-signout" class="button outline" type="button">Sign out</button></div>
+  <div class="dashboard-grid">
+    <article class="dashboard-card"><h3>Supplier profile</h3><form id="profile-form" class="stack">
+      <label>Contact name<input name="full_name" required maxlength="120"></label>
+      <label>Business name<input name="business_name" maxlength="180"></label>
+      <label>County<input name="county" maxlength="80"></label>
+      <label>Business type<input name="business_type" maxlength="100"></label>
+      <label>Business phone<input name="phone" maxlength="30"></label>
+      <label>Registration number<input name="registration_number" maxlength="100"></label>
+      <label>Website<input name="website" type="url" maxlength="240"></label>
+      <label>Business address<textarea name="address" rows="2" maxlength="500"></textarea></label>
+      <label>Business description<textarea name="description" rows="3" maxlength="1200"></textarea></label>
+      <button class="button" type="submit">Save supplier profile</button>
+    </form><p id="profile-status" class="micro" role="status"></p></article>
+    <article class="dashboard-card"><h3>Saved opportunities</h3><p class="muted">Your shortlist is saved to your account.</p><div id="saved-list" class="workspace-list"></div></article>
+    <article class="dashboard-card wide"><h3>Bid management</h3><p class="muted">Track preparation, submission stages and deadlines.</p>
+      <form id="bid-form" class="bid-form">
+        <label>Bid / tender name<input name="title" required maxlength="200" placeholder="e.g. Supply of ICT equipment"></label>
+        <label>Link saved tender<select name="saved_tender_id" id="bid-saved-tender"><option value="">No linked tender</option></select></label>
+        <label>Deadline<input name="deadline_at" type="datetime-local"></label>
+        <label>Stage<select name="status"><option value="planning">Planning</option><option value="documents_pending">Documents pending</option><option value="ready_for_review">Ready for review</option><option value="submitted">Submitted</option></select></label>
+        <button class="button" type="submit">Add to bid pipeline</button>
+      </form><div id="bid-list" class="workspace-list"></div>
+    </article>
+    <article class="dashboard-card"><h3>Supplier documents</h3><p class="muted">Private files for your account. PDF, JPEG or PNG; maximum 10 MB.</p>
+      <form id="document-form" class="stack"><label>Choose document<input name="document" type="file" accept=".pdf,.jpg,.jpeg,.png" required></label><button class="button" type="submit">Upload securely</button></form>
+      <p id="document-status" class="micro" role="status"></p><div id="document-list" class="workspace-list"></div>
+    </article>
+    <article class="dashboard-card"><h3>Notifications</h3><p class="muted">In-app account notifications.</p><div id="notification-list" class="workspace-list"></div></article>
+  </div>
+</section>
 <section id="beta" class="cta">
   <div><p class="eyebrow">FOUNDING SUPPLIER BETA</p><h2>Help shape Africa's next procurement workspace.</h2><p>We invite Kenyan suppliers, SMEs, contractors and procurement consultants to test the free beta and share feedback on what would make tender discovery more useful.</p></div>
   <a class="button white" href="mailto:hello@bidwazi.africa?subject=BidWazi%20Supplier%20Beta">Request beta access</a>
 </section>
 </main>
+
+<div id="auth-modal" class="auth-backdrop" hidden>
+  <section class="auth-panel" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+    <button class="auth-close" type="button" aria-label="Close">×</button>
+    <p class="eyebrow">BIDWAZI SUPPLIER ACCOUNT</p><h2 id="auth-title">Sign in to BidWazi</h2>
+    <p id="auth-intro">Open your supplier workspace.</p>
+    <form id="auth-form" class="auth-form">
+      <label id="auth-name-wrap" hidden>Full name<input name="full_name" autocomplete="name" maxlength="120"></label>
+      <label>Email address<input name="email" type="email" required autocomplete="email"></label>
+      <label>Password<input name="password" type="password" required minlength="8" autocomplete="current-password"></label>
+      <button class="button" type="submit" id="auth-submit">Sign in</button>
+    </form>
+    <div class="auth-actions"><button id="auth-switch" class="auth-switch" type="button">New supplier? Create an account</button><button id="auth-reset" class="auth-switch" type="button">Forgot password?</button></div>
+    <p id="auth-message" class="auth-message" role="status"></p>
+    <p class="micro">Use an email address you control. Email confirmation may be required before your first sign-in.</p>
+  </section>
+</div>
 <footer><b>BidWazi Africa</b><p>Independent procurement discovery tool. Not affiliated with PPRA, PPIP or any procuring entity. Data may be incomplete or delayed; verify each opportunity against the official notice.</p><a href="https://tenders.go.ke/" target="_blank" rel="noopener">Official PPIP</a><small>© <span id="year"></span> BidWazi Africa</small></footer>
 <script src="/app.js" defer></script>
+<script type="module" src="/account.js"></script>
 </body>
 </html>

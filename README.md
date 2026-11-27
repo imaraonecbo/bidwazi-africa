@@ -32,3 +32,16 @@ GET /api/tenders?page=1 fetches the official PPIP feed, normalizes a limited set
 ## Security
 
 No secrets are needed for this beta. Keep future secrets in Cloudflare environment variables/secrets, never in public files or Git history. Before adding accounts, persistent customer data, paid access or email notifications, implement and test authentication, authorization, rate limits, privacy notices, retention and incident procedures.
+
+
+## Supplier accounts and workspace
+
+Supplier registration and sign-in use Supabase Auth email/password. The website uses only the project's public publishable key in browser code; no service-role key is shipped to customers. New accounts receive a supplier profile and default preferences through a database trigger.
+
+The supplier workspace supports editable company profiles, cloud-saved PPIP tenders, bid pipeline records and stage updates, private supplier document uploads and an in-app notification inbox. Documents are kept in a private Supabase Storage bucket under each user's UUID folder and are opened with short-lived signed URLs. AI tender summaries use the existing authenticated Cloudflare Worker and its request limits.
+
+Supabase Auth URL configuration:
+- Site URL: `https://bidwazi-africa.pages.dev`
+- Redirect URL: `https://bidwazi-africa.pages.dev/**`
+
+Keep email confirmation enabled. Automated scheduled monitoring and external email/SMS delivery are later activation milestones. Payments remain disabled until supplier workflows pass testing.

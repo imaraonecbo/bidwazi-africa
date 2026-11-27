@@ -124,11 +124,24 @@
     const save = makeElement("button", "save-button", state.saved.has(id) ? "★ Saved" : "☆ Save");
     save.type = "button";
     save.setAttribute("aria-pressed", state.saved.has(id) ? "true" : "false");
-    save.addEventListener("click", () => {
-      if (state.saved.has(id)) state.saved.delete(id);
-      else state.saved.add(id);
-      saveSaved();
-      render();
+    save.addEventListener("click", async () => {
+      if (window.BidWaziAccount && window.BidWaziAccount.isSignedIn()) {
+        save.disabled = true;
+        try {
+          await window.BidWaziAccount.toggleTender(notice);
+          setStatus("Tender shortlist updated in your supplier account.");
+        } catch (error) {
+          setStatus(error.message || "Could not update your saved tenders.");
+        } finally {
+          save.disabled = false;
+        }
+      } else {
+        if (state.saved.has(id)) state.saved.delete(id);
+        else state.saved.add(id);
+        saveSaved();
+        render();
+        setStatus("Saved in this browser. Sign in to sync tenders across devices.");
+      }
     });
 
     const link = makeElement("a", "official-link", "Official notice ↗");
@@ -136,7 +149,32 @@
     link.target = "_blank";
     link.rel = "noopener noreferrer";
 
-    actions.append(save, link);
+    const analyze = makeElement("button", "save-button", "✦ Analyse");
+    analyze.type = "button";
+    analyze.addEventListener("click", async () => {
+      if (!window.BidWaziAccount || !window.BidWaziAccount.isSignedIn()) {
+        window.BidWaziAccount?.openAuth("signin");
+        setStatus("Sign in to use AI tender analysis.");
+        return;
+      }
+      analyze.disabled = true;
+      analyze.textContent = "Analysing…";
+      let output = card.querySelector(".ai-result");
+      if (!output) {
+        output = makeElement("pre", "ai-result");
+        card.append(output);
+      }
+      output.textContent = "Checking the notice details…";
+      try {
+        output.textContent = await window.BidWaziAccount.analyzeTender(notice);
+      } catch (error) {
+        output.textContent = error.message || "Analysis could not be completed.";
+      } finally {
+        analyze.disabled = false;
+        analyze.textContent = "✦ Analyse";
+      }
+    });
+    actions.append(save, analyze, link);
     const footer = makeElement("div", "notice-footer");
     footer.append(closing, actions);
     card.append(pills, title, buyer, footer);
@@ -212,6 +250,12 @@
     anchor.click();
     URL.revokeObjectURL(url);
   }
+
+  window.addEventListener("bidwazi:cloud-saved", (event) => {
+    const ids = Array.isArray(event.detail?.ids) ? event.detail.ids.map(String) : [];
+    state.saved = new Set(ids);
+    render();
+  });
 
   function initialize() {
     $("#year").textContent = String(new Date().getFullYear());
