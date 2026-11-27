@@ -3,69 +3,125 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#102b46">
-<meta name="description" content="Discover Kenyan public procurement opportunities, track deadlines and organise supplier bids with BidWazi Africa.">
-<title>BidWazi Africa | Procurement Intelligence</title>
-<link rel="canonical" href="https://bidwazi-africa.pages.dev/">
+<meta name="theme-color" content="#101c32">
+<meta name="description" content="E-S-E connects people to real online technology work, AI projects, collaborative teams and opportunities to build ideas into products.">
+<title>E-S-E | Global Digital Work & Innovation</title>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <header class="topbar">
-  <a class="brand" href="/"><span class="brandmark">BW</span><span>BidWazi Africa</span></a>
-  <nav aria-label="Primary navigation"><a href="#radar">Tender radar</a><a href="#workflow">How it works</a><a href="#beta">Supplier beta</a></nav>
-  <a class="button small" href="#radar">Explore tenders</a>
+  <a class="brand" href="/"><span class="brandmark">E</span><span>E-S-E <small>TECHNOLOGY & INNOVATION</small></span></a>
+  <nav><a href="#how">How it works</a><a href="#work">Work areas</a><a href="#ideas">Ideas studio</a></nav>
+  <div class="top-actions"><button id="login-open" class="button secondary">Sign in</button><button id="join-open" class="button">Join free</button><button id="logout" class="button secondary" hidden>Sign out</button></div>
 </header>
 <main>
 <section class="hero">
   <div class="hero-copy">
-    <p class="eyebrow">KENYA FIRST. AFRICA NEXT.</p>
-    <h1>Find the right tenders.<br><span>Build your next contract.</span></h1>
-    <p class="lead">A procurement opportunity workspace for suppliers, contractors and consultants. Discover public notices, check deadlines and organise the bids worth pursuing.</p>
-    <div class="actions"><a class="button" href="#radar">Explore opportunities</a><a class="button secondary" href="#workflow">How it works</a></div>
-    <p class="micro">Free public beta. No card required. Official-source links.</p>
+    <p class="eyebrow">KENYA · AFRICA · THE WORLD</p>
+    <h1>Talent is everywhere.<br><span>Opportunity should be too.</span></h1>
+    <p class="lead">E-S-E is building a global digital-work company where people use technology and AI to contribute to real projects, develop valuable skills, collaborate on ideas and earn from work they complete.</p>
+    <div class="actions"><button id="hero-join" class="button">Join the network — free</button><a class="button secondary" href="#how">See how it works</a></div>
+    <p class="micro">No worker registration fee. No paid membership to unlock work.</p>
   </div>
   <aside class="hero-panel">
-    <div class="panel-top"><span>PROCUREMENT RADAR</span><span class="live">LIVE SOURCE</span></div>
-    <div class="headline-number" id="total">—</div>
-    <p class="panel-caption">Notices reported by the current PPIP feed</p>
-    <div class="panel-row"><span>ICT and technology</span><b>Discover</b></div>
-    <div class="panel-row"><span>Construction and works</span><b>Track</b></div>
-    <div class="panel-row"><span>Goods and services</span><b>Shortlist</b></div>
-    <p class="panel-note">PPIP is the source of truth. Verify every notice and deadline on the official portal.</p>
+    <p class="eyebrow">THE E-S-E MISSION</p>
+    <h2>Build. Contribute. Earn. Innovate.</h2>
+    <div class="mission-row"><b>01</b><span>Real digital projects and client work</span></div>
+    <div class="mission-row"><b>02</b><span>Open, clearly scoped paid assignments</span></div>
+    <div class="mission-row"><b>03</b><span>Skills, portfolios and collaborative teams</span></div>
+    <div class="mission-row"><b>04</b><span>A place to develop promising ideas</span></div>
+    <p class="panel-note">Paid opportunities appear when the company has secured the work or approved the project budget. We do not invent jobs or earnings.</p>
   </aside>
 </section>
-<section class="trust">
-  <div><b>Official-source discovery</b><span>Links back to PPIP</span></div>
-  <div><b>Supplier-focused</b><span>Designed around bid workflows</span></div>
-  <div><b>Free beta</b><span>No payment setup</span></div>
-</section>
-<section id="radar" class="section">
-  <div class="section-heading"><div><p class="eyebrow">OPPORTUNITY DISCOVERY</p><h2>Kenya tender radar</h2><p class="muted">Search active notices returned by the public PPIP feed.</p></div><button id="refresh" class="button outline">Refresh feed</button></div>
-  <div class="filters">
-    <input id="query" type="search" placeholder="Search title, buyer, reference or keyword">
-    <select id="sector"><option value="">All sectors</option><option>ICT and Technology</option><option>Construction and Works</option><option>Health and Medical</option><option>Agriculture</option><option>Consulting and Professional</option><option>Training and Education</option><option>Goods and Supplies</option><option>Services</option><option>Other opportunities</option></select>
-    <select id="deadline"><option value="">Any deadline</option><option value="7">Closing within 7 days</option><option value="30">Closing within 30 days</option><option value="past">Deadline passed</option><option value="missing">No date listed</option></select>
-    <label class="check"><input id="agpo" type="checkbox"> AGPO flagged</label>
-    <button id="csv" class="button outline">Export CSV</button>
-  </div>
-  <div class="feed-meta"><span id="status">Connecting to official feed</span><span id="shown"></span></div>
-  <div id="cards" class="cards"><div class="loading">Loading procurement notices.</div></div>
-  <div class="pagination"><button id="previous" class="button outline" disabled>Previous</button><span id="page">Page 1</span><button id="next" class="button outline">Next</button></div>
-</section>
-<section id="workflow" class="section alt">
-  <p class="eyebrow">BUILT FOR THE BID JOURNEY</p><h2>From discovery to decision.</h2>
+
+<section class="trust"><div><b>Free to join</b><span>Contributors never pay to unlock work</span></div><div><b>Skills first</b><span>Beginners and specialists can grow</span></div><div><b>Global vision</b><span>Start in Africa, connect worldwide</span></div></section>
+
+<section id="how" class="section">
+  <p class="eyebrow">HOW THE NETWORK WORKS</p><h2>From your skills to real work.</h2>
   <div class="steps">
-    <article><b>01 / DISCOVER</b><h3>Find opportunities</h3><p>Search public notices by keyword, sector, buyer and closing date.</p></article>
-    <article><b>02 / SHORTLIST</b><h3>Save tenders</h3><p>Save notices in this browser and export your shortlist for your team.</p></article>
-    <article><b>03 / PREPARE</b><h3>Verify and bid</h3><p>Open the official notice, confirm requirements and manage your bid process.</p></article>
+    <article><b>01 / JOIN</b><h3>Create your profile</h3><p>Tell us what you can do, what you want to learn, your location and when you are available.</p></article>
+    <article><b>02 / FIND</b><h3>Choose an opportunity</h3><p>See the work scope, requirements, pay, estimated effort and deadline before claiming or applying.</p></article>
+    <article><b>03 / DELIVER</b><h3>Complete and submit</h3><p>Work individually or with a team. Get feedback, improve your work and build your record.</p></article>
+    <article><b>04 / EARN</b><h3>Get paid for accepted work</h3><p>Track approved earnings and payout requests transparently. Payment terms are shown before work begins.</p></article>
   </div>
 </section>
-<section id="beta" class="cta">
-  <div><p class="eyebrow">FOUNDING SUPPLIER BETA</p><h2>Help shape Africa's next procurement workspace.</h2><p>We invite Kenyan suppliers, SMEs, contractors and procurement consultants to test the free beta and share feedback on what would make tender discovery more useful.</p></div>
-  <a class="button white" href="mailto:hello@bidwazi.africa?subject=BidWazi%20Supplier%20Beta">Request beta access</a>
+
+<section id="work" class="section dark-section">
+  <p class="eyebrow">DIGITAL WORK AREAS</p><h2>Many ways to participate in the AI economy.</h2>
+  <div class="work-grid">
+    <article><span>✦</span><h3>AI & data operations</h3><p>Data annotation, AI model evaluation, language review, transcription quality and dataset preparation.</p></article>
+    <article><span>⌘</span><h3>Software & testing</h3><p>Website testing, app QA, bug reports, accessibility checks, frontend tasks and technical support.</p></article>
+    <article><span>▤</span><h3>Research & data</h3><p>Web research, data cleaning, spreadsheet verification, structured extraction and fact checking.</p></article>
+    <article><span>✎</span><h3>Digital production</h3><p>Content operations, localisation, documentation, design, video and website maintenance.</p></article>
+  </div>
+  <p class="micro">These are the company's target work categories. Only funded and approved opportunities are listed as currently available paid work.</p>
 </section>
+
+<section id="opportunities" class="section">
+  <div class="section-heading"><div><p class="eyebrow">LIVE OPPORTUNITY BOARD</p><h2>Find work you can contribute to.</h2><p class="muted">Only open opportunities with secured funding are displayed here.</p></div><button id="refresh" class="button secondary">Refresh</button></div>
+  <div class="filters"><input id="search" type="search" placeholder="Search work, skills or category"><select id="category"><option value="">All work areas</option><option>AI & Data Operations</option><option>Software & Technology</option><option>Research & Operations</option><option>Language & Content</option><option>Creative Production</option><option>Business Operations</option></select></div>
+  <div id="opportunity-status" class="feed-meta">Loading available work…</div>
+  <div id="opportunity-list" class="opportunity-grid"><div class="loading">Connecting to the work board…</div></div>
+</section>
+
+<section id="ideas" class="section idea-section">
+  <div><p class="eyebrow">THE INNOVATION STUDIO</p><h2>Your idea could become the next project.</h2><p class="muted">Contributors can propose technology products, tools and solutions to problems in their communities. E-S-E can review promising ideas and explore a prototype, team or pilot.</p><p class="micro">Submitting an idea does not guarantee funding, selection or payment. Ownership and compensation terms are agreed before development begins.</p></div>
+  <button id="idea-open" class="button">Submit an idea</button>
+</section>
+
+<section id="workspace" class="section workspace" hidden>
+  <div class="section-heading"><div><p class="eyebrow">YOUR CONTRIBUTOR DESK</p><h2 id="welcome">Your workspace</h2><p class="muted">Manage your profile, skills, assignments and earnings.</p></div><span id="profile-state" class="pill">Profile</span></div>
+  <div class="workspace-grid">
+    <article class="panel">
+      <h3>Contributor profile</h3>
+      <form id="profile-form" class="stack">
+        <label>Display name<input name="display_name" maxlength="100" required></label>
+        <label>Country code (e.g. KE, NG, GH)<input name="country_code" maxlength="2" minlength="2" pattern="[A-Za-z]{2}" required></label>
+        <label>City<input name="city" maxlength="100"></label>
+        <label>Time zone<input name="timezone" maxlength="80" value="Africa/Nairobi"></label>
+        <label>Short bio<textarea name="bio" rows="3" maxlength="800"></textarea></label>
+        <label>Portfolio / work sample link<input name="portfolio_url" type="url" placeholder="https://"></label>
+        <label>Availability<select name="availability"><option value="available">Available</option><option value="busy">Busy</option><option value="unavailable">Unavailable</option></select></label>
+        <label>Profile visibility<select name="profile_visibility"><option value="private">Private</option><option value="public">Public — visible to clients</option></select></label>
+        <button class="button" type="submit">Save profile</button>
+      </form><p id="profile-message" class="message" role="status"></p>
+    </article>
+    <article class="panel">
+      <h3>Your skills</h3><p class="muted">Select skills you have or want to develop. Choose a proficiency level for each.</p>
+      <div id="skill-list" class="skill-list">Loading skills…</div>
+      <button id="save-skills" class="button secondary">Save selected skills</button><p id="skills-message" class="message" role="status"></p>
+    </article>
+    <article class="panel wide">
+      <h3>My assignments</h3><div id="assignment-list" class="list"><p class="muted">No assignments claimed yet.</p></div>
+    </article>
+    <article class="panel">
+      <h3>Submit completed work</h3>
+      <form id="submission-form" class="stack">
+        <label>Assignment<select name="assignment_id" id="submission-assignment" required><option value="">Choose an active assignment</option></select></label>
+        <label>What have you completed?<textarea name="submission_text" rows="5" required minlength="10" maxlength="10000"></textarea></label>
+        <label>Deliverable link (optional)<input name="deliverable_url" type="url" placeholder="https://"></label>
+        <button class="button" type="submit">Submit for review</button>
+      </form><p id="submission-message" class="message" role="status"></p>
+    </article>
+    <article class="panel">
+      <h3>Earnings & payouts</h3><div id="earnings-summary" class="earnings-summary">KES 0.00</div><p class="muted">Cleared earnings are recorded after work acceptance. Payout requests are checked against your available ledger balance.</p>
+      <form id="payout-form" class="stack">
+        <label>Amount (KES)<input name="amount" type="number" min="1" step="0.01" required></label>
+        <label>Payment method<select name="payout_method"><option value="mpesa">M-Pesa</option><option value="bank_transfer">Bank transfer</option><option value="paypal">PayPal</option></select></label>
+        <button class="button secondary" type="submit">Request payout</button>
+      </form><p id="payout-message" class="message" role="status"></p><div id="payout-list" class="list"></div>
+    </article>
+    <article class="panel wide">
+      <h3>My ideas</h3><div id="my-ideas" class="list"><p class="muted">No ideas submitted yet.</p></div>
+    </article>
+  </div>
+</section>
+
+<div id="auth-modal" class="modal" hidden><section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="auth-title"><button class="close" data-close="auth" aria-label="Close">×</button><p class="eyebrow">JOIN THE NETWORK</p><h2 id="auth-title">Sign in</h2><p id="auth-intro" class="muted">Access your contributor desk.</p><form id="auth-form" class="stack"><label id="name-wrap" hidden>Full name<input name="full_name" autocomplete="name"></label><label>Email<input name="email" type="email" required autocomplete="email"></label><label>Password<input name="password" type="password" required minlength="8" autocomplete="current-password"></label><button class="button" id="auth-submit" type="submit">Sign in</button></form><div class="auth-links"><button id="auth-switch" class="link-button">Create a free account</button><button id="auth-reset" class="link-button">Forgot password?</button></div><p id="auth-message" class="message" role="status"></p><p class="micro">No payment or subscription is required to register as a contributor.</p></section></div>
+
+<div id="idea-modal" class="modal" hidden><section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="idea-title"><button class="close" data-close="idea" aria-label="Close">×</button><p class="eyebrow">INNOVATION STUDIO</p><h2 id="idea-title">Share your idea</h2><form id="idea-form" class="stack"><label>Idea title<input name="title" required maxlength="160"></label><label>What problem does it solve?<textarea name="problem" required rows="3" maxlength="3000"></textarea></label><label>How would your solution work?<textarea name="proposed_solution" required rows="4" maxlength="5000"></textarea></label><label>Category<select name="category"><option value="software">Software / app</option><option value="ai">AI / automation</option><option value="community">Community solution</option><option value="education">Education</option><option value="business">Business / productivity</option><option value="other">Other</option></select></label><button class="button" type="submit">Submit idea</button></form><p id="idea-message" class="message" role="status"></p></section></div>
 </main>
-<footer><b>BidWazi Africa</b><p>Independent procurement discovery tool. Not affiliated with PPRA, PPIP or any procuring entity. Data may be incomplete or delayed; verify each opportunity against the official notice.</p><a href="https://tenders.go.ke/" target="_blank" rel="noopener">Official PPIP</a><small>© <span id="year"></span> BidWazi Africa</small></footer>
-<script src="/app.js" defer></script>
+<footer><b>E-S-E Technology & Innovation</b><p>Our mission is to expand access to meaningful digital work and help people build useful technology. Paid work is published only when funding and delivery terms are approved.</p><small>© <span id="year"></span> E-S-E</small></footer>
+<script type="module" src="/account.js"></script>
 </body>
 </html>
