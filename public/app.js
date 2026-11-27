@@ -94,7 +94,7 @@
       if (deadline === "7" || deadline === "30") {
         if (!closing) return false;
         const difference = closing.getTime() - now;
-        if (difference >= 0 || difference > Number(deadline) * 86400000) return false;
+        if (difference < 0 || difference > Number(deadline) * 86400000) return false;
       }
       return true;
     });
@@ -157,7 +157,7 @@
     }
 
     $("#page").textContent = "Page " + state.page + " of " + state.lastPage;
-    $("#previous").disabled = state.page >= state.lastPage;
+    $("#previous").disabled = state.page <= 1;
     $("#next").disabled = state.page >= state.lastPage;
     $("#shown").textContent = notices.length + " notices shown on this page";
   }
@@ -203,7 +203,7 @@
     const rows = filteredNotices();
     const columns = ["id", "reference", "title", "entity", "category", "method", "published", "closing", "agpo", "sourceUrl"];
     const quote = (value) => '"' + String(value ?? "").replace(/"/g, '""') + '"';
-    const content = [columns.join(","), ...rows.map(row => columns.map(key => quote(row[key])).join(","))].join(" r\n");
+    const content = [columns.join(","), ...rows.map(row => columns.map(key => quote(row[key])).join(","))].join("\r\n");
     const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
