@@ -2,444 +2,391 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const SUPABASE_URL = "https://darvkreybhvlrmcubaum.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_fwWeEjoJCm3vDQt92Isq2A_7dYIt7SX";
-const AI_ENDPOINT = "https://bidwazi-ai.joramtutein.workers.dev";
-const DOCUMENT_BUCKET = "supplier-documents";
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
 });
 
-const $ = (selector) => document.querySelector(selector);
-let currentUser = null;
-let profile = {};
-let savedTenders = [];
-let bidWorkspaces = [];
-let notifications = [];
+const $ = (s) => document.querySelector(s);
+let user = null;
+let profile = null;
+let skills = [];
+let selectedSkills = new Map();
+let opportunities = [];
+let assignments = [];
+let earnings = [];
+let payouts = [];
+let ideas = [];
 let authMode = "signin";
 
-function showMessage(selector, message, isError = false) {
-  const element = $(selector);
-  if (!element) return;
-  element.textContent = message || "";
-  element.classList.toggle("error-message", Boolean(isError));
+const money = (minor, currency = "KES") => new Intl.NumberFormat("en", {
+  style: "currency", currency, maximumFractionDigits: 2
+}).format((Number(minor) || 0) / 100);
+const node = (tag, text, cls) => {
+  const el = document.createElement(tag);
+  if (text !== undefined && text !== null) el.textContent = String(text);
+  if (cls) el.className = cls;
+  return el;
+};
+function message(id, text, error = false) {
+  const el = $(id);
+  if (!el) return;
+  el.textContent = text || "";
+  el.classList.toggle("error", Boolean(error));
 }
-
+function openModal(id) { $(id).hidden = false; }
+function closeModal(id) { $(id).hidden = true; }
 function setAuthMode(mode) {
   authMode = mode;
-  $("#auth-title").textContent = mode === "signup" ? "Create your supplier account" : "Sign in to BidWazi";
+  $("#auth-title").textContent = mode === "signup" ? "Create your free contributor account" : "Sign in";
   $("#auth-intro").textContent = mode === "signup"
-    ? "Register to save tenders, manage supplier details and organise bids."
-    : "Sign in to continue to your supplier workspace.";
-  $("#auth-name-wrap").hidden = mode !== "signup";
-  $("#auth-name-wrap input").required = mode === "signup";
-  $("#auth-submit").textContent = mode === "signup" ? "Create supplier account" : "Sign in";
-  $("#auth-switch").textContent = mode === "signup" ? "Already registered? Sign in" : "New supplier? Create an account";
-  showMessage("#auth-message", "");
+    ? "Join the E-S-E network. No registration fee or paid membership."
+    : "Access your contributor desk.";
+  $("#name-wrap").hidden = mode !== "signup";
+  $("#name-wrap input").required = mode === "signup";
+  $("#auth-submit").textContent = mode === "signup" ? "Create free account" : "Sign in";
+  $("#auth-switch").textContent = mode === "signup" ? "Already registered? Sign in" : "Create a free account";
+  message("#auth-message", "");
 }
-function openAuth(mode = "signin") {
-  setAuthMode(mode);
-  $("#auth-modal").hidden = false;
-  $("#auth-form").elements.email.focus();
+function showAccount(userData) {
+  user = userData || null;
+  $("#login-open").hidden = Boolean(user);
+  $("#join-open").hidden = Boolean(user);
+  $("#logout").hidden = !user;
+  $("#workspace").hidden = !user;
+  if (!user) {
+    $("#welcome").textContent = "Your workspace";
+    $("#assignment-list").replaceChildren(node("p", "Sign in to view your assignments.", "muted"));
+  }
 }
-function closeAuth() { $("#auth-modal").hidden = true; }
-
-async function submitAuth(event) {
+async function authSubmit(event) {
   event.preventDefault();
-  const values = new FormData(event.currentTarget);
-  const email = String(values.get("email") || "").trim().toLowerCase();
-  const password = String(values.get("password") || "");
-  const fullName = String(values.get("full_name") || "").trim();
+  const form = new FormData(event.currentTarget);
+  const email = String(form.get("email") || "").trim().toLowerCase();
+  const password = String(form.get("password") || "");
+  const fullName = String(form.get("full_name") || "").trim();
   const button = $("#auth-submit");
   button.disabled = true;
-  showMessage("#auth-message", "Connecting securely…");
+  message("#auth-message", "Connecting securely…");
   try {
     if (authMode === "signup") {
       const { data, error } = await supabase.auth.signUp({
         email, password,
-        options: { data: { full_name: fullName }, emailRedirectTo: window.location.origin + "/" }
+        options: { data: { full_name: fullName }, emailRedirectTo: location.origin + "/" }
       });
       if (error) throw error;
-      if (data.session && data.user) {
-        currentUser = data.user;
-        await loadWorkspace();
-        closeAuth();
+      if (data.session?.user) {
+        user = data.user;
+        closeModal("#auth-modal");
+        await loadDashboard();
       } else {
-        showMessage("#auth-message", "Account request received. Check your email, confirm your address, then sign in.");
+        message("#auth-message", "Account created. Check your email to confirm your address, then sign in.");
       }
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      currentUser = data.user;
-      await loadWorkspace();
-      closeAuth();
+      user = data.user;
+      closeModal("#auth-modal");
+      await loadDashboard();
     }
-  } catch (error) {
-    showMessage("#auth-message", error.message || "Authentication could not be completed.", true);
-  } finally {
-    button.disabled = false;
-  }
+  } catch (e) {
+    message("#auth-message", e.message || "We could not complete sign-in.", true);
+  } finally { button.disabled = false; }
+}
+async function passwordReset() {
+  const email = $("#auth-form").elements.email.value.trim().toLowerCase();
+  if (!email) return message("#auth-message", "Enter your email address first.", true);
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: location.origin + "/" });
+  message("#auth-message", error ? error.message : "If the account exists, a password reset email has been sent.", Boolean(error));
 }
 
-async function requestPasswordReset() {
-  const email = $("#auth-form").elements.email.value.trim().toLowerCase();
-  if (!email) {
-    showMessage("#auth-message", "Enter your email address first.", true);
+async function loadOpportunities() {
+  const root = $("#opportunity-list");
+  root.replaceChildren(node("div", "Loading available opportunities…", "loading"));
+  const { data, error } = await supabase.from("work_opportunities")
+    .select("id,title,summary,instructions,category,required_skills,quality_criteria,eligible_countries,pay_amount_minor,currency,pay_basis,estimated_minutes,slots_total,slots_claimed,deadline_at")
+    .order("created_at", { ascending: false }).limit(100);
+  if (error) {
+    root.replaceChildren(node("div", "The opportunity board is temporarily unavailable. Please refresh shortly.", "empty"));
+    message("#opportunity-status", "Unable to load opportunities.", true);
     return;
   }
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + "/"
+  opportunities = data || [];
+  renderOpportunities();
+}
+function renderOpportunities() {
+  const root = $("#opportunity-list");
+  root.replaceChildren();
+  const q = ($("#search").value || "").trim().toLowerCase();
+  const category = $("#category").value;
+  const list = opportunities.filter(o => {
+    const hay = [o.title,o.summary,o.instructions,o.category,JSON.stringify(o.required_skills || [])].join(" ").toLowerCase();
+    return (!q || hay.includes(q)) && (!category || o.category === category);
   });
-  showMessage("#auth-message", error ? error.message : "If that email belongs to an account, a password-reset email has been sent.");
-}
-
-function dispatchSavedIds() {
-  window.dispatchEvent(new CustomEvent("bidwazi:cloud-saved", {
-    detail: { ids: savedTenders.map((row) => String(row.source_tender_id)) }
-  }));
-}
-
-function setAccountUi(user) {
-  currentUser = user || null;
-  $("#account-open").hidden = Boolean(user);
-  $("#dashboard-open").hidden = !user;
-  $("#supplier-dashboard").hidden = !user;
-  if (!user) {
-    $("#saved-list").replaceChildren();
-    $("#bid-list").replaceChildren();
-    $("#document-list").replaceChildren();
-    $("#notification-list").replaceChildren();
-    $("#dashboard-welcome").textContent = "Sign in to access your supplier workspace.";
-    window.dispatchEvent(new CustomEvent("bidwazi:cloud-saved", { detail: { ids: [] } }));
+  $("#opportunity-status").textContent = list.length
+    ? list.length + " funded opportunity" + (list.length === 1 ? "" : "ies") + " currently open."
+    : "No funded opportunities are currently published. New assignments will appear here once work and budgets are secured.";
+  if (!list.length) {
+    root.append(node("div", "There are no matching funded tasks right now. You can still create your profile, add skills and return when new work is published.", "empty"));
+    return;
+  }
+  for (const o of list) {
+    const card = node("article", undefined, "opportunity-card");
+    const pills = node("div", undefined, "pills");
+    pills.append(node("span", o.category, "pill"));
+    pills.append(node("span", (o.slots_total - o.slots_claimed) + " slots left", "pill"));
+    const title = node("h3", o.title);
+    const summary = node("p", o.summary || "Read the instructions before claiming this assignment.");
+    const pay = node("div", money(o.pay_amount_minor, o.currency) + " · " + (o.pay_basis || "per task"), "pay");
+    const meta = node("div", undefined, "opportunity-meta");
+    if (o.estimated_minutes) meta.append(node("span", "Est. " + o.estimated_minutes + " min"));
+    if (o.deadline_at) meta.append(node("span", "Deadline " + new Date(o.deadline_at).toLocaleString()));
+    if (Array.isArray(o.required_skills) && o.required_skills.length) meta.append(node("span", "Skills: " + o.required_skills.map(x => typeof x === "string" ? x : x.name || x.slug).join(", ")));
+    const actions = node("div", undefined, "opportunity-actions");
+    const claim = node("button", user ? "Claim this work" : "Sign in to claim", "button");
+    claim.type = "button";
+    const existing = assignments.find(a => a.opportunity_id === o.id && a.status !== "cancelled");
+    if (existing) { claim.textContent = "Already claimed"; claim.disabled = true; }
+    claim.addEventListener("click", async () => {
+      if (!user) { setAuthMode("signin"); openModal("#auth-modal"); return; }
+      claim.disabled = true;
+      try {
+        const { error } = await supabase.from("work_assignments").insert({
+          opportunity_id: o.id, contributor_id: user.id
+        });
+        if (error) throw error;
+        await loadDashboard();
+        renderOpportunities();
+        message("#profile-message", "Work claimed. Read the full instructions in your assignments.");
+      } catch (e) {
+        message("#profile-message", e.message || "Could not claim this opportunity.", true);
+        claim.disabled = false;
+      }
+    });
+    actions.append(claim);
+    card.append(pills,title,summary,pay,meta,actions);
+    root.append(card);
   }
 }
 
-async function loadWorkspace() {
-  if (!currentUser) return;
-  const results = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", currentUser.id).maybeSingle(),
-    supabase.from("saved_tenders").select("*").eq("user_id", currentUser.id).order("updated_at", { ascending: false }),
-    supabase.from("bid_workspaces").select("*").eq("user_id", currentUser.id).order("updated_at", { ascending: false }),
-    supabase.from("user_notifications").select("*").eq("user_id", currentUser.id).order("created_at", { ascending: false }).limit(30)
-  ]);
-  for (const result of results) if (result.error) throw result.error;
-  profile = results[0].data || {};
-  savedTenders = results[1].data || [];
-  bidWorkspaces = results[2].data || [];
-  notifications = results[3].data || [];
-  fillProfile();
-  renderSavedTenders();
-  renderBidWorkspaces();
-  renderNotifications();
-  dispatchSavedIds();
-  $("#dashboard-welcome").textContent = "Signed in as " + currentUser.email + ". Your workspace is private to your account.";
-  $("#supplier-dashboard").hidden = false;
-  await loadSupplierDocuments();
+async function loadSkills() {
+  const { data, error } = await supabase.from("skills").select("id,slug,name,category").eq("is_active", true).order("category").order("name");
+  if (error) throw error;
+  skills = data || [];
+  const { data: own, error: ownError } = await supabase.from("worker_skills").select("skill_id,proficiency").eq("user_id", user.id);
+  if (ownError) throw ownError;
+  selectedSkills = new Map((own || []).map(x => [String(x.skill_id), x.proficiency]));
+  renderSkills();
 }
-
-function fillProfile() {
-  const form = $("#profile-form");
-  for (const field of ["full_name","business_name","county","business_type","phone","registration_number","website","address","description"]) {
-    if (form.elements[field]) form.elements[field].value = profile[field] || "";
+function renderSkills() {
+  const root = $("#skill-list");
+  root.replaceChildren();
+  if (!skills.length) { root.append(node("p","No skills are available yet.","muted")); return; }
+  for (const s of skills) {
+    const row = node("div",undefined,"skill-row");
+    const label = node("label");
+    const check = document.createElement("input");
+    check.type = "checkbox";
+    check.checked = selectedSkills.has(String(s.id));
+    check.addEventListener("change", () => {
+      if (check.checked) selectedSkills.set(String(s.id), selectedSkills.get(String(s.id)) || "beginner");
+      else selectedSkills.delete(String(s.id));
+      level.disabled = !check.checked;
+    });
+    label.append(check,node("span",s.name));
+    const level = document.createElement("select");
+    for (const v of ["beginner","intermediate","advanced","expert"]) level.add(new Option(v[0].toUpperCase()+v.slice(1),v));
+    level.value = selectedSkills.get(String(s.id)) || "beginner";
+    level.disabled = !check.checked;
+    level.addEventListener("change", () => {
+      if (check.checked) selectedSkills.set(String(s.id),level.value);
+    });
+    row.append(label,level);
+    root.append(row);
   }
+}
+async function saveSkills() {
+  const button = $("#save-skills");
+  button.disabled = true;
+  try {
+    const { error: removeError } = await supabase.from("worker_skills").delete().eq("user_id", user.id);
+    if (removeError) throw removeError;
+    const rows = [...selectedSkills.entries()].map(([skill_id,proficiency]) => ({
+      user_id:user.id, skill_id:Number(skill_id), proficiency
+    }));
+    if (rows.length) {
+      const { error } = await supabase.from("worker_skills").insert(rows);
+      if (error) throw error;
+    }
+    message("#skills-message","Skills saved.");
+  } catch(e) { message("#skills-message",e.message,true); }
+  finally { button.disabled = false; }
 }
 async function saveProfile(event) {
   event.preventDefault();
-  if (!currentUser) throw new Error("Sign in to save a supplier profile.");
-  const values = Object.fromEntries(new FormData(event.currentTarget).entries());
-  values.id = currentUser.id;
-  values.updated_at = new Date().toISOString();
-  const { error } = await supabase.from("profiles").upsert(values, { onConflict: "id" });
+  const form = new FormData(event.currentTarget);
+  const row = Object.fromEntries(form.entries());
+  row.user_id = user.id;
+  row.country_code = row.country_code.trim().toUpperCase();
+  row.updated_at = new Date().toISOString();
+  const { error } = await supabase.from("worker_profiles").upsert(row,{onConflict:"user_id"});
   if (error) throw error;
-  profile = { ...profile, ...values };
-  showMessage("#profile-status", "Supplier profile saved.");
+  profile = row;
+  message("#profile-message","Profile saved.");
 }
-function makeNode(tag, text, className) {
-  const element = document.createElement(tag);
-  if (text !== undefined && text !== null) element.textContent = String(text);
-  if (className) element.className = className;
-  return element;
+function fillProfile() {
+  const f = $("#profile-form");
+  if (!profile) return;
+  for (const k of ["display_name","country_code","city","timezone","bio","portfolio_url","availability","profile_visibility"]) {
+    if (f.elements[k]) f.elements[k].value = profile[k] ?? "";
+  }
+  $("#welcome").textContent = "Welcome, " + (profile.display_name || user.email);
+  $("#profile-state").textContent = profile.availability === "available" ? "Available for work" : profile.availability;
 }
-
-function renderSavedTenders() {
-  const root = $("#saved-list");
+async function loadAssignments() {
+  const { data, error } = await supabase.from("work_assignments")
+    .select("id,opportunity_id,status,agreed_amount_minor,currency,claimed_at,work_opportunities(title,summary,instructions,deadline_at)")
+    .eq("contributor_id",user.id).order("claimed_at",{ascending:false});
+  if (error) throw error;
+  assignments = data || [];
+  const root = $("#assignment-list");
+  const select = $("#submission-assignment");
   root.replaceChildren();
-  const bidSelect = $("#bid-saved-tender");
-  bidSelect.replaceChildren(new Option("No linked tender", ""));
-  if (!savedTenders.length) root.append(makeNode("p", "No saved tenders yet. Save opportunities from the tender radar.", "muted"));
-
-  for (const row of savedTenders) {
-    const snapshot = row.tender_snapshot || {};
-    const item = makeNode("div", undefined, "workspace-item");
-    const details = makeNode("div");
-    details.append(makeNode("strong", snapshot.title || row.source_tender_id));
-    details.append(makeNode("p", (snapshot.entity || "Buyer not listed") + " · " + (snapshot.reference || "Reference unavailable")));
-    details.append(makeNode("p", "Status: " + (row.workflow_status || "watching")));
-    const remove = makeNode("button", "Remove", "button outline");
-    remove.type = "button";
-    remove.addEventListener("click", async () => {
-      remove.disabled = true;
-      const { error } = await supabase.from("saved_tenders").delete().eq("id", row.id).eq("user_id", currentUser.id);
-      if (error) showMessage("#profile-status", error.message, true);
-      else await loadWorkspace();
-    });
-    item.append(details, remove);
+  select.replaceChildren(new Option("Choose an active assignment",""));
+  const active = assignments.filter(a => ["claimed","in_progress","revision_required"].includes(a.status));
+  for (const a of assignments) {
+    const item = node("div",undefined,"list-item");
+    const info = node("div");
+    info.append(node("strong",a.work_opportunities?.title || "Work assignment"));
+    info.append(node("p", "Status: " + a.status.replaceAll("_"," ") + " · Agreed pay: " + money(a.agreed_amount_minor,a.currency)));
+    if (a.work_opportunities?.deadline_at) info.append(node("p","Deadline: "+new Date(a.work_opportunities.deadline_at).toLocaleString()));
+    const details = node("details");
+    details.append(node("summary","View instructions"));
+    details.append(node("p",a.work_opportunities?.instructions || a.work_opportunities?.summary || "No additional instructions."));
+    item.append(info,details);
     root.append(item);
-    bidSelect.add(new Option(snapshot.title || row.source_tender_id, row.id));
+    if (["claimed","in_progress","revision_required"].includes(a.status)) select.add(new Option(a.work_opportunities?.title || "Assignment",a.id));
   }
+  if (!assignments.length) root.append(node("p","No assignments claimed yet. Explore the opportunity board above.","muted"));
 }
-
-function renderBidWorkspaces() {
-  const root = $("#bid-list");
-  root.replaceChildren();
-  const statuses = {
-    planning: "Planning", documents_pending: "Documents pending",
-    ready_for_review: "Ready for review", submitted: "Submitted",
-    won: "Won", lost: "Lost", withdrawn: "Withdrawn"
-  };
-  if (!bidWorkspaces.length) {
-    root.append(makeNode("p", "Your bid pipeline is empty. Add a saved tender or create a workspace above.", "muted"));
-    return;
-  }
-  for (const row of bidWorkspaces) {
-    const item = makeNode("div", undefined, "workspace-item");
-    const details = makeNode("div");
-    details.append(makeNode("strong", row.title));
-    details.append(makeNode("p", row.deadline_at
-      ? "Deadline: " + new Date(row.deadline_at).toLocaleString("en-KE", { timeZone: "Africa/Nairobi" })
-      : "No deadline entered"));
-    if (row.notes) details.append(makeNode("p", row.notes));
-    const select = document.createElement("select");
-    select.setAttribute("aria-label", "Update bid stage");
-    for (const [value,label] of Object.entries(statuses)) {
-      const option = new Option(label, value);
-      option.selected = row.status === value;
-      select.add(option);
-    }
-    select.addEventListener("change", async () => {
-      select.disabled = true;
-      const { error } = await supabase.from("bid_workspaces")
-        .update({ status: select.value, updated_at: new Date().toISOString() })
-        .eq("id", row.id).eq("user_id", currentUser.id);
-      if (error) showMessage("#profile-status", error.message, true);
-      else await loadWorkspace();
-    });
-    item.append(details, select);
-    root.append(item);
-  }
-}
-
-async function addBidWorkspace(event) {
+async function submitWork(event) {
   event.preventDefault();
-  if (!currentUser) throw new Error("Sign in to create a bid workspace.");
-  const values = Object.fromEntries(new FormData(event.currentTarget).entries());
-  const linkedTender = savedTenders.find((row) => row.id === values.saved_tender_id);
-  const title = String(values.title || "").trim();
-  if (!title) throw new Error("Enter a bid workspace title.");
-  const { error } = await supabase.from("bid_workspaces").insert({
-    user_id: currentUser.id,
-    saved_tender_id: linkedTender ? linkedTender.id : null,
-    title,
-    status: values.status || "planning",
-    deadline_at: values.deadline_at ? new Date(values.deadline_at).toISOString() : null
+  const form = new FormData(event.currentTarget);
+  const row = {
+    assignment_id:String(form.get("assignment_id")),
+    contributor_id:user.id,
+    submission_text:String(form.get("submission_text") || "").trim(),
+    deliverable_url:String(form.get("deliverable_url") || "").trim() || null
+  };
+  const { error } = await supabase.from("work_submissions").insert(row);
+  if (error) throw error;
+  event.currentTarget.reset();
+  message("#submission-message","Submission received for review.");
+  await loadAssignments();
+}
+async function loadEarnings() {
+  const [ledger,payoutData] = await Promise.all([
+    supabase.from("worker_earnings_ledger").select("amount_minor,entry_type,currency,reason,created_at").eq("contributor_id",user.id).order("created_at",{ascending:false}),
+    supabase.from("payout_requests").select("id,amount_minor,currency,payout_method,status,requested_at").eq("contributor_id",user.id).order("requested_at",{ascending:false})
+  ]);
+  if (ledger.error) throw ledger.error;
+  if (payoutData.error) throw payoutData.error;
+  earnings = ledger.data || [];
+  payouts = payoutData.data || [];
+  const balance = earnings.reduce((sum,x)=>sum+(x.entry_type==="credit"?Number(x.amount_minor):-Number(x.amount_minor)),0);
+  const currency = earnings[0]?.currency || "KES";
+  $("#earnings-summary").textContent = money(balance,currency);
+  const root = $("#payout-list");
+  root.replaceChildren();
+  for (const p of payouts) root.append(node("div",money(p.amount_minor,p.currency)+" · "+p.payout_method+" · "+p.status,"list-item"));
+}
+async function requestPayout(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const amount = Math.round(Number(form.get("amount"))*100);
+  if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error("Enter a valid payout amount.");
+  const { error } = await supabase.from("payout_requests").insert({
+    contributor_id:user.id, amount_minor:amount, currency:"KES", payout_method:String(form.get("payout_method"))
   });
   if (error) throw error;
   event.currentTarget.reset();
-  await loadWorkspace();
+  message("#payout-message","Payout request submitted. It will be checked by the finance team.");
+  await loadEarnings();
 }
-
-function renderNotifications() {
-  const root = $("#notification-list");
-  root.replaceChildren();
-  if (!notifications.length) {
-    root.append(makeNode("p", "No notifications yet. Automated tender alerts will appear here when monitoring is activated.", "muted"));
-    return;
-  }
-  for (const row of notifications) {
-    const item = makeNode("div", undefined, "workspace-item");
-    const details = makeNode("div");
-    details.append(makeNode("strong", row.title));
-    details.append(makeNode("p", row.body || ""));
-    details.append(makeNode("p", new Date(row.created_at).toLocaleString("en-KE", { timeZone: "Africa/Nairobi" })));
-    item.append(details);
-    if (!row.read_at) {
-      const read = makeNode("button", "Mark read", "button outline");
-      read.type = "button";
-      read.addEventListener("click", async () => {
-        const { error } = await supabase.from("user_notifications")
-          .update({ read_at: new Date().toISOString() }).eq("id", row.id).eq("user_id", currentUser.id);
-        if (error) showMessage("#profile-status", error.message, true);
-        else await loadWorkspace();
-      });
-      item.append(read);
-    } else item.append(makeNode("span", "Read", "micro"));
-    root.append(item);
-  }
-}
-
-async function loadSupplierDocuments() {
-  const root = $("#document-list");
-  root.replaceChildren();
-  const { data, error } = await supabase.storage.from(DOCUMENT_BUCKET).list(currentUser.id, {
-    limit: 100, sortBy: { column: "created_at", order: "desc" }
-  });
-  if (error) {
-    showMessage("#document-status", "Private document storage is unavailable: " + error.message, true);
-    return;
-  }
-  const files = (data || []).filter((item) => item.name && item.name !== ".emptyFolderPlaceholder");
-  if (!files.length) {
-    root.append(makeNode("p", "No supplier documents uploaded.", "muted"));
-    return;
-  }
-  for (const file of files) {
-    const path = currentUser.id + "/" + file.name;
-    const { data: signed, error: signedError } = await supabase.storage.from(DOCUMENT_BUCKET).createSignedUrl(path, 300);
-    const item = makeNode("div", undefined, "workspace-item");
-    item.append(makeNode("span", file.name));
-    if (!signedError && signed?.signedUrl) {
-      const link = makeNode("a", "Open securely", "official-link");
-      link.href = signed.signedUrl;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      item.append(link);
-    } else item.append(makeNode("span", "Link unavailable", "micro"));
-    root.append(item);
-  }
-}
-
-async function uploadSupplierDocument(event) {
-  event.preventDefault();
-  const file = event.currentTarget.elements.document.files?.[0];
-  if (!file) throw new Error("Choose a document first.");
-  if (file.size > 10 * 1024 * 1024) throw new Error("The document exceeds the 10 MB limit.");
-  if (!["application/pdf","image/jpeg","image/png"].includes(file.type)) {
-    throw new Error("Only PDF, JPEG and PNG files are accepted.");
-  }
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120);
-  const objectPath = currentUser.id + "/" + Date.now() + "-" + safeName;
-  const button = event.currentTarget.querySelector("button[type=submit]");
-  button.disabled = true;
-  showMessage("#document-status", "Uploading to your private supplier folder…");
-  try {
-    const { error } = await supabase.storage.from(DOCUMENT_BUCKET).upload(objectPath, file, {
-      contentType: file.type, cacheControl: "3600", upsert: false
-    });
-    if (error) throw error;
-    event.currentTarget.reset();
-    showMessage("#document-status", "Document uploaded to your private supplier folder.");
-    await loadSupplierDocuments();
-  } finally {
-    button.disabled = false;
-  }
-}
-
-async function toggleTender(notice) {
-  if (!currentUser) {
-    openAuth("signin");
-    throw new Error("Sign in to save tenders to your account.");
-  }
-  const sourceId = String(notice.id || "");
-  if (!sourceId) throw new Error("This tender has no source identifier and cannot be saved.");
-  const { data: existing, error: lookupError } = await supabase.from("saved_tenders").select("id")
-    .eq("user_id", currentUser.id).eq("source", "Kenya PPIP").eq("source_tender_id", sourceId).maybeSingle();
-  if (lookupError) throw lookupError;
-  if (existing) {
-    const { error } = await supabase.from("saved_tenders").delete().eq("id", existing.id).eq("user_id", currentUser.id);
-    if (error) throw error;
-  } else {
-    const snapshot = {
-      id: sourceId, title: notice.title, reference: notice.reference, entity: notice.entity,
-      category: notice.category, method: notice.method, closing: notice.closing,
-      published: notice.published, agpo: notice.agpo, sourceUrl: notice.sourceUrl
-    };
-    const { error } = await supabase.from("saved_tenders").insert({
-      user_id: currentUser.id, source: "Kenya PPIP", source_tender_id: sourceId,
-      tender_snapshot: snapshot, workflow_status: "watching"
-    });
-    if (error) throw error;
-  }
-  await loadWorkspace();
-}
-
-async function analyzeTender(notice) {
-  const { data, error } = await supabase.auth.getSession();
+async function loadIdeas() {
+  const { data,error } = await supabase.from("idea_submissions").select("id,title,category,status,submitted_at")
+    .eq("contributor_id",user.id).order("submitted_at",{ascending:false});
   if (error) throw error;
-  const token = data.session?.access_token;
-  if (!token) throw new Error("Your session has expired. Sign in again.");
-  const input = [
-    "Title: " + (notice.title || ""),
-    "Buyer: " + (notice.entity || ""),
-    "Reference: " + (notice.reference || ""),
-    "Category: " + (notice.category || ""),
-    "Procurement method: " + (notice.method || ""),
-    "Closing: " + (notice.closing || ""),
-    "Official source URL: " + (notice.sourceUrl || "")
-  ].join("\n");
-  const response = await fetch(AI_ENDPOINT + "/generate", {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: "Bearer " + token },
-    body: JSON.stringify({ task: "tender_summary", input })
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.error || "AI tender analysis failed.");
-  return body.answer;
+  ideas = data || [];
+  const root = $("#my-ideas");
+  root.replaceChildren();
+  if (!ideas.length) root.append(node("p","No ideas submitted yet.","muted"));
+  for (const idea of ideas) root.append(node("div",idea.title+" · "+idea.category+" · "+idea.status.replaceAll("_"," "),"list-item"));
 }
-
+async function submitIdea(event) {
+  event.preventDefault();
+  const form = Object.fromEntries(new FormData(event.currentTarget).entries());
+  const { error } = await supabase.from("idea_submissions").insert({
+    contributor_id:user.id,title:String(form.title).trim(),problem:String(form.problem).trim(),
+    proposed_solution:String(form.proposed_solution).trim(),category:String(form.category),status:"received"
+  });
+  if (error) throw error;
+  event.currentTarget.reset();
+  message("#idea-message","Idea submitted privately to the E-S-E team.");
+  await loadIdeas();
+}
+async function loadDashboard() {
+  if (!user) return;
+  showAccount(user);
+  try {
+    const { data,error } = await supabase.from("worker_profiles").select("*").eq("user_id",user.id).maybeSingle();
+    if (error) throw error;
+    profile = data || {display_name:user.user_metadata?.full_name || user.email?.split("@")[0] || "",country_code:"KE",timezone:"Africa/Nairobi",availability:"available",profile_visibility:"private"};
+    fillProfile();
+    await Promise.all([loadSkills(),loadAssignments(),loadEarnings(),loadIdeas()]);
+    renderOpportunities();
+  } catch(e) {
+    message("#profile-message","Could not load your workspace: "+e.message,true);
+  }
+}
 async function signOut() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
-  currentUser = null;
-  profile = {};
-  savedTenders = [];
-  bidWorkspaces = [];
-  notifications = [];
-  setAccountUi(null);
-  closeAuth();
+  user = null; profile = null; assignments = []; earnings = [];
+  showAccount(null);
+  await loadOpportunities();
 }
 
-function wireUi() {
-  $("#account-open").addEventListener("click", () => openAuth("signin"));
-  $("#dashboard-open").addEventListener("click", () => {
-    $("#supplier-dashboard").hidden = false;
-    $("#supplier-dashboard").scrollIntoView({ behavior: "smooth" });
-    loadWorkspace().catch((error) => showMessage("#profile-status", error.message, true));
-  });
-  $("#auth-modal .auth-close").addEventListener("click", closeAuth);
-  $("#auth-modal").addEventListener("click", (event) => {
-    if (event.target === $("#auth-modal")) closeAuth();
-  });
-  $("#auth-switch").addEventListener("click", () => setAuthMode(authMode === "signup" ? "signin" : "signup"));
-  $("#auth-form").addEventListener("submit", submitAuth);
-  $("#auth-reset").addEventListener("click", () => requestPasswordReset().catch((error) => showMessage("#auth-message", error.message, true)));
-  $("#profile-form").addEventListener("submit", (event) => saveProfile(event).catch((error) => showMessage("#profile-status", error.message, true)));
-  $("#bid-form").addEventListener("submit", (event) => addBidWorkspace(event).catch((error) => showMessage("#profile-status", error.message, true)));
-  $("#document-form").addEventListener("submit", (event) => uploadSupplierDocument(event).catch((error) => showMessage("#document-status", error.message, true)));
-  $("#account-signout").addEventListener("click", () => signOut().catch((error) => showMessage("#profile-status", error.message, true)));
+function wire() {
+  $("#year").textContent = String(new Date().getFullYear());
+  $("#login-open").addEventListener("click",()=>{setAuthMode("signin");openModal("#auth-modal");});
+  $("#join-open").addEventListener("click",()=>{setAuthMode("signup");openModal("#auth-modal");});
+  $("#hero-join").addEventListener("click",()=>{setAuthMode("signup");openModal("#auth-modal");});
+  $("#logout").addEventListener("click",()=>signOut().catch(e=>message("#profile-message",e.message,true)));
+  $("#auth-form").addEventListener("submit",authSubmit);
+  $("#auth-switch").addEventListener("click",()=>setAuthMode(authMode==="signup"?"signin":"signup"));
+  $("#auth-reset").addEventListener("click",()=>passwordReset().catch(e=>message("#auth-message",e.message,true)));
+  document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>closeModal(b.dataset.close==="idea"?"#idea-modal":"#auth-modal")));
+  document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)closeModal("#"+m.id);}));
+  $("#profile-form").addEventListener("submit",e=>saveProfile(e).catch(err=>message("#profile-message",err.message,true)));
+  $("#save-skills").addEventListener("click",saveSkills);
+  $("#submission-form").addEventListener("submit",e=>submitWork(e).catch(err=>message("#submission-message",err.message,true)));
+  $("#payout-form").addEventListener("submit",e=>requestPayout(e).catch(err=>message("#payout-message",err.message,true)));
+  $("#idea-open").addEventListener("click",()=>{if(!user){setAuthMode("signin");openModal("#auth-modal");message("#auth-message","Sign in to submit an idea.");}else openModal("#idea-modal");});
+  $("#idea-form").addEventListener("submit",e=>submitIdea(e).catch(err=>message("#idea-message",err.message,true)));
+  $("#refresh").addEventListener("click",loadOpportunities);
+  $("#search").addEventListener("input",renderOpportunities);
+  $("#category").addEventListener("change",renderOpportunities);
 }
 
-window.BidWaziAccount = {
-  isSignedIn: () => Boolean(currentUser),
-  openAuth,
-  toggleTender,
-  analyzeTender,
-  refreshWorkspace: loadWorkspace
-};
-
-wireUi();
-supabase.auth.onAuthStateChange((_event, session) => {
-  const user = session?.user || null;
-  setAccountUi(user);
-  if (user) {
-    currentUser = user;
-    window.setTimeout(() => loadWorkspace().catch((error) => showMessage("#profile-status", error.message, true)), 0);
-  }
+wire();
+await loadOpportunities();
+const {data:sessionData,error:sessionError}=await supabase.auth.getSession();
+if(sessionError) message("#auth-message",sessionError.message,true);
+showAccount(sessionData?.session?.user || null);
+if(sessionData?.session?.user){user=sessionData.session.user;await loadDashboard();}
+supabase.auth.onAuthStateChange((_event,session)=>{
+  const next=session?.user || null;
+  showAccount(next);
+  if(next){user=next;setTimeout(()=>loadDashboard(),0);}
+  else {user=null;profile=null;assignments=[];renderOpportunities();}
 });
-const sessionResult = await supabase.auth.getSession();
-if (sessionResult.error) {
-  showMessage("#auth-message", sessionResult.error.message, true);
-} else {
-  setAccountUi(sessionResult.data.session?.user || null);
-  if (sessionResult.data.session?.user) {
-    currentUser = sessionResult.data.session.user;
-    await loadWorkspace();
-  }
-}
